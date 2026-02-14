@@ -1,8 +1,6 @@
 package main
 
 import (
-	"appguard/parser"
-	"appguard/rules"
 	"appguard/scanner"
 	"fmt"
 	"os"
@@ -10,16 +8,25 @@ import (
 
 func main() {
 
-	code, _ := os.ReadFile("test.js")
+	if len(os.Args) < 2 {
+		fmt.Println("Usage: astguard <repo-path>")
+		return
+	}
 
-	tree, _ := parser.Parse(code)
+	root := os.Args[1]
 
-	var findings []rules.Finding
-
-	scanner.Walk(tree.RootNode(), code, &findings)
+	findings, err := scanner.ScanRepo(root)
+	if err != nil {
+		fmt.Println("Scan error:", err)
+		return
+	}
 
 	for _, f := range findings {
-		fmt.Println("Trigger:", f.Type)
-		fmt.Println("Code:", f.Code)
+		fmt.Printf("[%s] %s:%d\n%s\n\n",
+			f.Type,
+			f.File,
+			f.Line,
+			f.Code,
+		)
 	}
 }
