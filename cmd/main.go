@@ -1,12 +1,13 @@
 package main
 
 import (
-	"appguard/scanner"
+	"appguard/internal/scanner"
 	"fmt"
 	"os"
 )
 
 func main() {
+	fmt.Println("KEY:", os.Getenv("GEMINI_API_KEY"))
 
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: astguard <repo-path>")

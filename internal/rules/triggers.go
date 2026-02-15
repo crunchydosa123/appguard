@@ -7,11 +7,12 @@ import (
 )
 
 type Finding struct {
-	File   string
-	Line   int
-	Column int
-	Code   string
-	Type   string
+	File           string
+	Line           int
+	Column         int
+	Code           string
+	Type           string
+	LLMExplanation string
 }
 
 func CheckTriggers(node *sitter.Node, source []byte, file string, findings *[]Finding) {

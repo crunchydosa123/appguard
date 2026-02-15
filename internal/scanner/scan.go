@@ -1,8 +1,8 @@
 package scanner
 
 import (
-	"appguard/parser"
-	"appguard/rules"
+	"appguard/internal/parser"
+	"appguard/internal/rules"
 	"os"
 	"path/filepath"
 	"strings"
