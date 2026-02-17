@@ -1,6 +1,7 @@
 package llm
 
 import (
+	"appguard/internal/rules"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -52,4 +53,61 @@ Return ONLY valid JSON:
 	}
 
 	return &explanation, nil
+}
+
+func ExplainFinding(
+	ctx context.Context,
+	client *genai.Client,
+	code string,
+	triggerType string,
+) (string, error) {
+	prompt := fmt.Sprintf(`
+		You are a security code reviewer.
+
+		Analyze this code for security risk in less than 20 words.
+
+		Trigger Type: %s
+
+		Code:
+		%s
+		`, triggerType, code)
+
+	result, err := client.Models.GenerateContent(
+		ctx,
+		"gemini-3-flash-preview",
+		genai.Text(prompt),
+		nil,
+	)
+
+	if err != nil {
+		return "", err
+	}
+
+	return result.Text(), nil
+
+}
+
+func EnrichFindings(
+	ctx context.Context,
+	client *genai.Client,
+	findings []rules.Finding,
+) ([]rules.Finding, error) {
+
+	for i := range findings {
+
+		exp, err := ExplainFinding(
+			ctx,
+			client,
+			findings[i].Code,
+			findings[i].Type,
+		)
+
+		if err != nil {
+			continue
+		}
+
+		findings[i].LLMExplanation = exp
+	}
+
+	return findings, nil
 }
