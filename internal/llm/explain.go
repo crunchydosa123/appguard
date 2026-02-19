@@ -93,21 +93,49 @@ func EnrichFindings(
 	findings []rules.Finding,
 ) ([]rules.Finding, error) {
 
-	for i := range findings {
+	const workers = 4
 
-		exp, err := ExplainFinding(
-			ctx,
-			client,
-			findings[i].Code,
-			findings[i].Type,
-		)
+	jobs := make(chan int, len(findings))
+	results := make(chan rules.Finding, len(findings))
 
-		if err != nil {
-			continue
-		}
+	// Start workers
+	for w := 0; w < workers; w++ {
+		go func() {
+			for i := range jobs {
 
-		findings[i].LLMExplanation = exp
+				f := findings[i]
+
+				exp, err := ExplainFinding(
+					ctx,
+					client,
+					f.Code,
+					f.Type,
+				)
+
+				if err != nil {
+					fmt.Printf("LLM error for %s: %v\n", f.Code, err)
+					results <- f
+					continue
+				}
+
+				f.LLMExplanation = exp
+				results <- f
+			}
+		}()
 	}
 
-	return findings, nil
+	// Send jobs
+	for i := range findings {
+		jobs <- i
+	}
+	close(jobs)
+
+	// Collect results
+	enriched := make([]rules.Finding, 0, len(findings))
+
+	for i := 0; i < len(findings); i++ {
+		enriched = append(enriched, <-results)
+	}
+
+	return enriched, nil
 }

@@ -1,9 +1,12 @@
 package cmd
 
 import (
+	"appguard/internal/llm"
 	"appguard/internal/scanner"
 	"fmt"
+	"os"
 
+	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
 )
 
@@ -23,22 +26,30 @@ var scanCmd = &cobra.Command{
 			return
 		}
 
-		for _, f := range findings {
-			fmt.Printf("[%s] %s:%d\n%s\n",
-				f.Type,
-				f.File,
-				f.Line,
-				f.Code,
-			)
-
-			if useAI {
-				fmt.Printf("AI Risk Explanation: ",
-					f.LLMExplanation,
-				)
+		if useAI && len(findings) > 0 {
+			client, err := llm.NewClient(cmd.Context())
+			if err != nil {
+				fmt.Println("LLM client error:", err)
+				return
 			}
 
+			findings, err = llm.EnrichFindings(cmd.Context(), client, findings)
+			if err != nil {
+				fmt.Println("LLM enrichment error:", err)
+				return
+			}
+		}
+
+		t := table.NewWriter()
+		t.SetOutputMirror(os.Stdout)
+
+		t.AppendHeader(table.Row{"Type", "File", "Line", "LLM Explanation"})
+
+		for _, f := range findings {
+			t.AppendRow(table.Row{f.Type, f.File, f.Line, f.LLMExplanation})
 			fmt.Println()
 		}
+
 	},
 }
 
